@@ -9,11 +9,29 @@
 #include <map>
 #include <bit>
 #include <bitset>
+#include <functional>
+#include <filesystem>
+
+bool get_data_file_name(std::string* fn_absolute, std::string fn_relative) {
+    if (fn_absolute == nullptr) {
+        return false;
+    }
+
+    std::filesystem::path root_dir(R"(C:\Users\andre\source\test\aoc-2022\input\)");
+
+    auto fn = root_dir / fn_relative;
+
+    if (!std::filesystem::exists(fn)) {
+        std::cout << "Could not read input file " << fn.string() << std::endl;
+        return false;
+    }
+
+    *fn_absolute = fn.string();
+
+    return true;
+}
 
 std::vector<std::string> read_file(std::string fn) {
-    //std::string root_dir = R"(D:\dev\test\aoc-2023\input\)";
-    std::string root_dir = R"(C:\Users\andre\source\test\aoc-2023\input\)";
-    fn = root_dir + fn;
     std::ifstream infile(fn);
     std::string line;
     std::vector<std::string> ret = {};
@@ -237,13 +255,83 @@ long long lcm(std::vector<long long> vals) {
     return ret;
 }
 
-void aoc01() {
+struct Task_result {
+    int task_a;
+    int task_b;
+};
+
+void aoc01(std::vector<std::string> lines, Task_result* result) {
+    auto calc = [&lines](size_t num_top_vals) {
+        int elf_id = 0;
+        int num_cals = 0;
+        std::vector<int> top_vals(num_top_vals, 0);
+        int idx_min_top_val = 0;
+
+        for (auto& line : lines) {
+            if (line.empty()) {
+                if (num_cals > top_vals[idx_min_top_val]) {
+                    top_vals[idx_min_top_val] = num_cals;
+                    int cur_min = std::numeric_limits<int>::max();
+                    for (size_t i = 0; i < num_top_vals; i++) {
+                        if (top_vals[i] < cur_min) {
+                            idx_min_top_val = i;
+                            cur_min = top_vals[i];
+                        }
+                    }
+                }
+                elf_id++;
+                num_cals = 0;
+            }
+            else {
+                num_cals += std::atoi(line.c_str());
+            }
+        }
+
+        int sum_top_vals = 0;
+        for (auto& v : top_vals) {
+            sum_top_vals += v;
+        }
+        return sum_top_vals;
+    };
+    
+    result->task_a = calc(1);
+    result->task_b = calc(3);
 
 }
 
+bool aoc(int id, bool use_test_data) {
+    std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
+        {1, aoc01}
+    };
+
+    if (fns.count(id) == 0) {
+        std::cout << "Could not find implementation for ID " << id << std::endl;
+        return false;
+    }
+
+    std::string fn_relative = std::format("aoc{:02}-{}.txt", id, use_test_data ? "test" : "real");
+    std::string fn_absolute = {};
+
+    if (!get_data_file_name(&fn_absolute, fn_relative)) {
+        std::cout << "Could not get data file name" << std::endl;
+        return false;
+    }
+
+    auto lines = read_file(fn_absolute);
+    Task_result result = {};
+
+    fns[id](lines, &result);
+
+    std::cout << std::format("AOC-{:02}:\n  pt1: {}\n  pt2: {}", id, result.task_a, result.task_b) << std::endl;
+
+    return true;
+}
+
 int main() {
+    int aoc_id = 1;
+    bool use_test_data = false;
     auto t_start = std::chrono::high_resolution_clock::now();
-    aoc01();
+    aoc(aoc_id, use_test_data);
     auto t_end = std::chrono::high_resolution_clock::now();
 
     auto duration = duration_cast<std::chrono::milliseconds>(t_end - t_start);
