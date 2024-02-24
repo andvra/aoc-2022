@@ -44,6 +44,25 @@ std::vector<std::string> read_file(std::string fn) {
     return ret;
 }
 
+void ltrim(std::string& s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }));
+}
+
+void rtrim(std::string& s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }).base(), s.end());
+}
+
+std::string trim(std::string s) {
+    ltrim(s);
+    rtrim(s);
+
+    return s;
+}
+
 std::vector<std::string> split_string(std::string s, std::string delimiter) {
     std::vector<std::string> ret = {};
 
@@ -299,9 +318,230 @@ void aoc01(std::vector<std::string> lines, Task_result* result) {
 
 }
 
-bool aoc(int id, bool use_test_data) {
+void aoc02(std::vector<std::string> lines, Task_result* result) {
+    struct Outcomes {
+        char first;
+        char second;
+        int val;
+    };
+
+    std::vector<Outcomes> outcomes = {
+        {'A','X',3},
+        {'A','Y',6},
+        {'A','Z',0},
+        {'B','X',0},
+        {'B','Y',3},
+        {'B','Z',6},
+        {'C','X',6},
+        {'C','Y',0},
+        {'C','Z',3},
+    };
+
+    int total_score = 0;
+    for (auto& line : lines) {
+        char cf = line[0];
+        char cs = line[2];
+        int score = cs - 'X' + 1;
+        for (int i = 0; i < outcomes.size();i++) {
+            auto& outcome = outcomes[i];
+            if (outcome.first == cf && outcome.second == cs) {
+                score += outcome.val;
+                break;
+            }
+        }
+        total_score += score;
+    }
+
+    result->task_a = total_score;
+
+    std::map<char, int> lose_scores = {
+        {'A', 3},
+        {'B', 1},
+        {'C', 2}
+    };
+
+    std::map<char, int> draw_scores = {
+        {'A', 1},
+        {'B', 2},
+        {'C', 3}
+    };
+
+    std::map<char, int> win_scores = {
+        {'A', 2},
+        {'B', 3},
+        {'C', 1}
+    };
+
+    std::map<char, std::map<char, int>> map_outcome = {
+        {'X',lose_scores},
+        {'Y',draw_scores},
+        {'Z',win_scores}
+    };
+
+    total_score = 0;
+    for (auto& line : lines) {
+        char cf = line[0];
+        char cs = line[2];
+        switch (cs) {
+            case 'X': total_score += 0 + lose_scores[cf]; break;
+            case 'Y': total_score += 3 + draw_scores[cf]; break;
+            case 'Z': total_score += 6 + win_scores[cf]; break;
+        }
+    }
+    result->task_b = total_score;
+}
+
+void aoc03(std::vector<std::string> lines, Task_result* result) {
+    int prio_sum = 0;
+
+    auto compartment_to_binary = [](std::string s) {
+        unsigned long long val = {};
+        for (char c : s) {
+            if (c >= 'a') {
+                c -= 'a';
+                c += 1;
+            }
+            else {
+                c -= 'A';
+                c += 27;
+            }
+            unsigned long long x = (unsigned int)c;
+            val |= (1ull << (unsigned long long)c);
+        }
+        return val;
+    };
+
+    for (auto& line : lines) {
+        unsigned long long vals[2] = {};
+        vals[0] = compartment_to_binary(line.substr(0, line.size() / 2));
+        vals[1] = compartment_to_binary(line.substr(line.size() / 2));
+        auto res = vals[0] & vals[1];
+        auto prio = std::countr_zero(res);
+        prio_sum += prio;
+    }
+    result->task_a = prio_sum;
+
+    prio_sum = 0;
+    for (int idx_group = 0; idx_group < lines.size() / 3; idx_group++) {
+        unsigned long long vals[3] = {};
+        int group_size = 3;
+        for (int i = 0; i < group_size; i++) {
+            vals[i] = compartment_to_binary(lines[idx_group * group_size + i]);
+        }
+        auto res = vals[0] & vals[1] & vals[2];
+        auto prio = std::countr_zero(res);
+        prio_sum += prio;
+    }
+    result->task_b = prio_sum;
+}
+
+void aoc04(std::vector<std::string> lines, Task_result* result) {
+    struct Range {
+        int start;
+        int end_incl;
+    };
+
+    int num_contained = 0;
+    int num_overlap = 0;
+    for (auto& line : lines) {
+        auto elve_ranges = split_string(line, ",");
+        std::vector<std::string> range_string[2] = {
+            split_string(elve_ranges[0], "-"),
+            split_string(elve_ranges[1], "-")
+        };
+        std::vector<Range> ranges(2);
+        ranges[0].start = std::atoi(range_string[0][0].c_str());
+        ranges[0].end_incl = std::atoi(range_string[0][1].c_str());
+        ranges[1].start = std::atoi(range_string[1][0].c_str());
+        ranges[1].end_incl = std::atoi(range_string[1][1].c_str());
+        bool is_contained = false;
+        bool has_overlap = false;
+        for (int i = 0; i < 2; i++) {
+            auto r1 = i == 0 ? ranges[0] : ranges[1];
+            auto r2 = i == 0 ? ranges[1] : ranges[0];
+            if (r1.start <= r2.start && r1.end_incl >= r2.end_incl) {
+                is_contained = true;
+            }
+            if (r1.start <= r2.end_incl && r1.end_incl >= r2.start) {
+                has_overlap = true;
+            }
+        }
+        if (is_contained) {
+            num_contained++;
+        }
+        if (has_overlap) {
+            num_overlap++;
+        }
+    }
+    result->task_a = num_contained;
+    result->task_b = num_overlap;
+}
+
+void aoc05(std::vector<std::string> lines, Task_result* result) {
+    auto num_stacks = (lines[0].size() + 1) / 4;
+    std::vector<std::vector<char>> stacks(num_stacks, std::vector<char>());
+
+    size_t num_lines = 0;
+    
+    for (auto& line : lines) {
+        if (line.empty()) {
+            num_lines--;
+            break;
+        }
+        num_lines++;
+    }
+
+    for (int idx_container = num_lines - 1; idx_container >= 0; idx_container--) {
+        for (int idx_stack = 0; idx_stack < num_stacks; idx_stack++) {
+            auto cc = lines[idx_container][4 * idx_stack + 1];
+            if (cc != ' ') {
+                stacks[idx_stack].push_back(cc);
+            }
+        }
+    }
+
+    struct Move {
+        int cnt;
+        int idx_from;
+        int idx_to;
+    };
+
+    auto idx_move_start = num_lines + 2;
+
+    auto num_moves = lines.size() - idx_move_start;
+    std::vector<Move> moves(num_moves);
+
+    for (int idx_move = 0; idx_move < num_moves; idx_move++) {
+        auto line = lines[idx_move_start + idx_move];
+        auto a = 0;
+        line = replace_all(line, "move ", "");
+        line = replace_all(line, "from ", "");
+        line = replace_all(line, "to ", "");
+        auto line_parts = split_string(line, " ");
+        moves[idx_move] = { std::atoi(line_parts[0].c_str()), std::atoi(line_parts[1].c_str()) - 1, std::atoi(line_parts[2].c_str()) - 1 };
+    }
+
+    for (auto& move : moves) {
+        for (int i = 0; i < move.cnt; i++) {
+            auto x = stacks[move.idx_from].back();
+            stacks[move.idx_from].pop_back();
+            stacks[move.idx_to].push_back(x);
+        }
+    }
+
+    for (auto& stack : stacks) {
+        std::cout << stack.back();
+    }
+    std::cout << std::endl;
+}
+
+bool aoc(int id) {
     std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
-        {1, aoc01}
+        {1, aoc01},
+        {2, aoc02},
+        {3, aoc03},
+        {4, aoc04},
+        {5, aoc05}
     };
 
     if (fns.count(id) == 0) {
@@ -309,29 +549,33 @@ bool aoc(int id, bool use_test_data) {
         return false;
     }
 
-    std::string fn_relative = std::format("aoc{:02}-{}.txt", id, use_test_data ? "test" : "real");
-    std::string fn_absolute = {};
+    auto run_with_file = [&id, &fns](bool use_test_data) {
+        std::string fn_relative = std::format("aoc{:02}-{}.txt", id, use_test_data ? "test" : "real");
+        std::string fn_absolute = {};
 
-    if (!get_data_file_name(&fn_absolute, fn_relative)) {
-        std::cout << "Could not get data file name" << std::endl;
-        return false;
-    }
+        if (!get_data_file_name(&fn_absolute, fn_relative)) {
+            std::cout << "Could not get data file name" << std::endl;
+            return false;
+        }
 
-    auto lines = read_file(fn_absolute);
-    Task_result result = {};
+        auto lines = read_file(fn_absolute);
+        Task_result result = {};
 
-    fns[id](lines, &result);
+        fns[id](lines, &result);
 
-    std::cout << std::format("AOC-{:02}:\n  pt1: {}\n  pt2: {}", id, result.task_a, result.task_b) << std::endl;
+        std::cout << std::format("AOC-{:02} ({}):\n  pt1: {}\n  pt2: {}", id, use_test_data ? "test" : "real", result.task_a, result.task_b) << std::endl;
+    };
+
+    run_with_file(true);
+    run_with_file(false);
 
     return true;
 }
 
 int main() {
-    int aoc_id = 1;
-    bool use_test_data = false;
+    int aoc_id = 5;
     auto t_start = std::chrono::high_resolution_clock::now();
-    aoc(aoc_id, use_test_data);
+    aoc(aoc_id);
     auto t_end = std::chrono::high_resolution_clock::now();
 
     auto duration = duration_cast<std::chrono::milliseconds>(t_end - t_start);
