@@ -561,13 +561,53 @@ void aoc05(std::vector<std::string> lines, Task_result* result) {
 	}
 }
 
+void aoc06(std::vector<std::string> lines, Task_result* result) {
+	auto calc = [](std::string line, int num_chars_in_row) {
+		auto line_size = line.size();
+
+		std::vector<bool> possible_pos(line.size(), true);
+		std::vector<int> last_char_pos('z' + 1, -1);
+
+		for (int idx_char = 0; idx_char < line_size; idx_char++) {
+			auto cur_char = line[idx_char];
+			auto last_pos = last_char_pos[cur_char];
+			if (last_pos > -1 && (idx_char - last_pos < num_chars_in_row)) {
+				for (int i = idx_char - num_chars_in_row + 1; i <= last_pos; i++) {
+					if (i < 0) {
+						continue;
+					}
+					possible_pos[i] = false;
+				}
+			}
+			last_char_pos[cur_char] = idx_char;
+		}
+
+		int ret = 0;
+
+		for (int i = 0; i < possible_pos.size(); i++) {
+			if (possible_pos[i] == true) {
+				ret = i + num_chars_in_row;
+				break;
+			}
+		}
+
+		return ret;
+	};
+
+	for (int i = 0; i < lines.size(); i++) {
+		result->pt1_string += (i == 0 ? "" : ",") + std::to_string(calc(lines[i], 4));
+		result->pt2_string += (i == 0 ? "" : ",") + std::to_string(calc(lines[i], 14));
+	}
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
 		{1, aoc01},
 		{2, aoc02},
 		{3, aoc03},
 		{4, aoc04},
-		{5, aoc05}
+		{5, aoc05},
+		{6, aoc06}
 	};
 
 	if (fns.count(id) == 0) {
@@ -607,7 +647,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 5;
+	int aoc_id = 6;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
