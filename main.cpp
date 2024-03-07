@@ -17,7 +17,11 @@ bool get_data_file_name(std::string* fn_absolute, std::string fn_relative) {
         return false;
     }
 
-    std::filesystem::path root_dir(R"(C:\Users\andre\source\test\aoc-2022\input\)");
+    auto root_dir = std::filesystem::current_path()
+        .parent_path()
+        .parent_path()
+        .parent_path()
+        .append("input");
 
     auto fn = root_dir / fn_relative;
 
@@ -275,8 +279,11 @@ long long lcm(std::vector<long long> vals) {
 }
 
 struct Task_result {
-    int task_a;
-    int task_b;
+    int pt1;
+    int pt2;
+    // Most answers are numbers. Appently, some are strings. If string is set, it overrides int.
+    std::string pt1_string;
+    std::string pt2_string;
 };
 
 void aoc01(std::vector<std::string> lines, Task_result* result) {
@@ -313,8 +320,8 @@ void aoc01(std::vector<std::string> lines, Task_result* result) {
         return sum_top_vals;
     };
     
-    result->task_a = calc(1);
-    result->task_b = calc(3);
+    result->pt1 = calc(1);
+    result->pt2 = calc(3);
 
 }
 
@@ -352,7 +359,7 @@ void aoc02(std::vector<std::string> lines, Task_result* result) {
         total_score += score;
     }
 
-    result->task_a = total_score;
+    result->pt1 = total_score;
 
     std::map<char, int> lose_scores = {
         {'A', 3},
@@ -388,7 +395,7 @@ void aoc02(std::vector<std::string> lines, Task_result* result) {
             case 'Z': total_score += 6 + win_scores[cf]; break;
         }
     }
-    result->task_b = total_score;
+    result->pt2 = total_score;
 }
 
 void aoc03(std::vector<std::string> lines, Task_result* result) {
@@ -419,7 +426,7 @@ void aoc03(std::vector<std::string> lines, Task_result* result) {
         auto prio = std::countr_zero(res);
         prio_sum += prio;
     }
-    result->task_a = prio_sum;
+    result->pt1 = prio_sum;
 
     prio_sum = 0;
     for (int idx_group = 0; idx_group < lines.size() / 3; idx_group++) {
@@ -432,7 +439,7 @@ void aoc03(std::vector<std::string> lines, Task_result* result) {
         auto prio = std::countr_zero(res);
         prio_sum += prio;
     }
-    result->task_b = prio_sum;
+    result->pt2 = prio_sum;
 }
 
 void aoc04(std::vector<std::string> lines, Task_result* result) {
@@ -473,8 +480,8 @@ void aoc04(std::vector<std::string> lines, Task_result* result) {
             num_overlap++;
         }
     }
-    result->task_a = num_contained;
-    result->task_b = num_overlap;
+    result->pt1 = num_contained;
+    result->pt2 = num_overlap;
 }
 
 void aoc05(std::vector<std::string> lines, Task_result* result) {
@@ -529,10 +536,12 @@ void aoc05(std::vector<std::string> lines, Task_result* result) {
         }
     }
 
+    std::string pt1 = {};
     for (auto& stack : stacks) {
-        std::cout << stack.back();
+        pt1 += stack.back();
     }
-    std::cout << std::endl;
+
+    result->pt1_string = pt1;
 }
 
 bool aoc(int id) {
@@ -563,7 +572,15 @@ bool aoc(int id) {
 
         fns[id](lines, &result);
 
-        std::cout << std::format("AOC-{:02} ({}):\n  pt1: {}\n  pt2: {}", id, use_test_data ? "test" : "real", result.task_a, result.task_b) << std::endl;
+        std::string pt1 = std::to_string(result.pt1);
+        std::string pt2 = std::to_string(result.pt2);
+        if (!result.pt1_string.empty()) {
+            pt1 = result.pt1_string;
+        }
+        if (!result.pt2_string.empty()) {
+            pt2 = result.pt2_string;
+        }
+        std::cout << std::format("AOC-{:02} ({}):\n  pt1: {}\n  pt2: {}", id, use_test_data ? "test" : "real", pt1, pt2) << std::endl;
     };
 
     run_with_file(true);
