@@ -291,7 +291,7 @@ void aoc01(std::vector<std::string> lines, Task_result* result) {
 		int elf_id = 0;
 		int num_cals = 0;
 		std::vector<int> top_vals(num_top_vals, 0);
-		int idx_min_top_val = 0;
+		size_t idx_min_top_val = 0;
 
 		for (auto& line : lines) {
 			if (line.empty()) {
@@ -412,7 +412,6 @@ void aoc03(std::vector<std::string> lines, Task_result* result) {
 				c -= 'A';
 				c += 27;
 			}
-			unsigned long long x = (unsigned int)c;
 			val |= (1ull << (unsigned long long)c);
 		}
 		return val;
@@ -498,7 +497,7 @@ void aoc05(std::vector<std::string> lines, Task_result* result) {
 		num_lines++;
 	}
 
-	for (int idx_container = num_lines - 1; idx_container >= 0; idx_container--) {
+	for (int idx_container = (int)num_lines - 1; idx_container >= 0; idx_container--) {
 		for (int idx_stack = 0; idx_stack < num_stacks; idx_stack++) {
 			auto cc = lines[idx_container][4 * idx_stack + 1];
 			if (cc != ' ') {
@@ -520,7 +519,6 @@ void aoc05(std::vector<std::string> lines, Task_result* result) {
 
 	for (int idx_move = 0; idx_move < num_moves; idx_move++) {
 		auto line = lines[idx_move_start + idx_move];
-		auto a = 0;
 		line = replace_all(line, "move ", "");
 		line = replace_all(line, "from ", "");
 		line = replace_all(line, "to ", "");
@@ -600,6 +598,82 @@ void aoc06(std::vector<std::string> lines, Task_result* result) {
 	}
 }
 
+void aoc07(std::vector<std::string> lines, Task_result* result) {
+	struct Dir_file {
+		std::string name;
+		size_t fsize;
+	};
+	struct Dir_folder {
+		std::string name;
+		Dir_folder* parent;
+		std::vector<Dir_folder> folders;
+		std::vector<Dir_file> files;
+		size_t tot_size;
+	};
+	struct Command {
+		std::string cmd;
+		std::vector<std::string> output;
+	};
+
+	Dir_folder root_folder = { "/" };
+	Dir_folder* cur_folder = &root_folder;
+	std::vector<Command> commands = {};
+
+	for (auto& line : lines) {
+		if (!line.empty() && line[0] == '$') {
+			commands.push_back({ line.substr(2),{} });
+		}
+		if (!line.empty() && line[0] != '$') {
+			commands.back().output.push_back(line);
+		}
+	}
+
+	for (auto& cmd : commands) {
+		auto cmd_parts = split_string(cmd.cmd, " ");
+		if (cmd_parts.size() == 0) {
+			continue;
+		}
+		if (cmd_parts[0] == "cd") {
+			if (cmd_parts[1] == "/") {
+				cur_folder = &root_folder;
+			}
+			if (cmd_parts[1] == "..") {
+				cur_folder = cur_folder->parent;
+			}
+			if (cmd_parts[1] != "/" && cmd_parts[1] != "..") {
+				bool found = false;
+				for (auto& f : cur_folder->folders) {
+					if (f.name == cmd_parts[1]) {
+						cur_folder = &f;
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					std::cout << std::format("Could not find folder {} in folder {}", cmd_parts[1], cur_folder->name) << std::endl;
+					return;
+				}
+			}
+		}
+		if (cmd_parts[0] == "ls") {
+			for (auto& o : cmd.output) {
+				auto o_parts = split_string(o, " ");
+				if (o_parts.empty()) {
+					continue;
+				}
+				if (o_parts[0] == "dir") {
+					cur_folder->folders.push_back({ o_parts[1], cur_folder });
+				}
+				if (o_parts[0] != "dir") {
+					cur_folder->files.push_back({ o_parts[1], (size_t)std::atoi(o_parts[0].c_str()) });
+				}
+			}
+		}
+	}
+
+	// TODO: Loop over folders and accumulate size
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
 		{1, aoc01},
@@ -607,7 +681,8 @@ bool aoc(int id) {
 		{3, aoc03},
 		{4, aoc04},
 		{5, aoc05},
-		{6, aoc06}
+		{6, aoc06},
+		{7, aoc07}
 	};
 
 	if (fns.count(id) == 0) {
@@ -638,7 +713,9 @@ bool aoc(int id) {
 			pt2 = result.pt2_string;
 		}
 		std::cout << std::format("AOC-{:02} ({}):\n  pt1: {}\n  pt2: {}", id, use_test_data ? "test" : "real", pt1, pt2) << std::endl;
-		};
+
+		return true;
+	};
 
 	run_with_file(true);
 	run_with_file(false);
@@ -647,7 +724,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 6;
+	int aoc_id = 7;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
