@@ -601,12 +601,12 @@ void aoc06(std::vector<std::string> lines, Task_result* result) {
 void aoc07(std::vector<std::string> lines, Task_result* result) {
 	struct Dir_file {
 		std::string name;
-		size_t fsize;
+		int fsize;
 	};
 	struct Dir_folder {
 		std::string name;
 		Dir_folder* parent;
-		size_t level;
+		int level;
 		int tot_size;
 		std::vector<Dir_folder> folders;
 		std::vector<Dir_file> files;
@@ -666,7 +666,7 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 					cur_folder->folders.push_back({ o_parts[1], cur_folder, cur_folder->level + 1 });
 				}
 				if (o_parts[0] != "dir") {
-					cur_folder->files.push_back({ o_parts[1], (size_t)std::atoi(o_parts[0].c_str()) });
+					cur_folder->files.push_back({ o_parts[1], std::atoi(o_parts[0].c_str()) });
 				}
 			}
 		}
@@ -674,14 +674,13 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 
 	std::vector<Dir_folder*> folders = { &root_folder };
 	int idx_start = 0;
-	int idx_end_exclusive = folders.size();
-	int idx_folder = folders.size();
+	int idx_end_exclusive = (int)folders.size();
 
 	while (idx_start != idx_end_exclusive) {
 		int cnt_new_folders = 0;
 		for (int i = idx_start; i < idx_end_exclusive; i++) {
-			auto cur_folder = folders[i];
-			for (auto& child : cur_folder->folders) {
+			auto f = folders[i];
+			for (auto& child : f->folders) {
 				folders.push_back(&child);
 				cnt_new_folders++;
 			}
@@ -698,13 +697,13 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 	}
 
 	for (int cur_level = (int)max_level; cur_level >= 0; cur_level--) {
-		for (auto& cur_folder : folders) {
-			if (cur_folder->level == cur_level) {
-				for (auto& child_folder : cur_folder->folders) {
-					cur_folder->tot_size += child_folder.tot_size;
+		for (auto& f : folders) {
+			if (f->level == cur_level) {
+				for (auto& child_folder : f->folders) {
+					f->tot_size += child_folder.tot_size;
 				}
-				for (auto& cur_file : cur_folder->files) {
-					cur_folder->tot_size += cur_file.fsize;
+				for (auto& cur_file : f->files) {
+					f->tot_size += cur_file.fsize;
 				}
 			}
 		}
@@ -728,6 +727,88 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 	}
 }
 
+void aoc08(std::vector<std::string> lines, Task_result* result) {
+	if (lines.empty() || lines[0].empty()) {
+		return;
+	}
+
+	struct Tree {
+		int height;
+		int scenic_score;
+	};
+
+	int num_rows = (int)lines.size();
+	int num_cols = (int)lines[0].size();
+	std::vector<std::vector<Tree>> trees(num_rows, std::vector<Tree>(num_cols, { 0,0 }));
+
+	for (int row = 0; row < num_rows; row++) {
+		for (int col = 0; col < num_cols; col++) {
+			trees[row][col] = { lines[row][col]-'0', 0};
+		}
+	}
+
+	int idx_tree = 0;
+	int delta_rows[] = { 1,-1,0,0 };
+	int delta_cols[] = { 0,0,1,-1 };
+	int max_step = num_rows;
+
+	if (num_cols > num_rows) {
+		max_step = num_cols;
+	}
+
+	int num_free_sight = 0;
+	for (int row = 0; row < num_rows; row++) {
+		for (int col = 0; col < num_cols; col++) {
+			bool free_sight = false;
+			int cur_height = trees[row][col].height;
+			int sight_length[4] = {};
+			for (int i = 0; i < 4; i++) {
+				auto delta_row = delta_rows[i];
+				auto delta_col = delta_cols[i];
+				for (int step = 1; step < max_step; step++) {
+					auto cur_row = row + delta_row * step;
+					auto cur_col = col + delta_col * step;
+					if (cur_row < 0 || cur_row >= num_rows) {
+						free_sight = true;
+						break;
+					}
+					if (cur_col < 0 || cur_col >= num_cols) {
+						free_sight = true;
+						break;
+					}
+					sight_length[i] = step;
+					if (trees[cur_row][cur_col].height >= cur_height) {
+						break;
+					}
+				}
+			}
+			int scenic_score = 1;
+			for (int i = 0; i < 4; i++) {
+				scenic_score *= sight_length[i];
+			}
+			trees[row][col].scenic_score = scenic_score;
+			idx_tree++;
+			if (free_sight) {
+				num_free_sight++;
+			}
+		}
+	}
+
+	result->pt1 = num_free_sight;
+
+	int max_scenic_score = 0;
+	for (int row = 0; row < num_rows; row++) {
+		for (int col = 0; col < num_cols; col++) {
+			auto& tree = trees[row][col];
+			if (tree.scenic_score > max_scenic_score) {
+				max_scenic_score = tree.scenic_score;
+			}
+		}
+	}
+
+	result->pt2 = max_scenic_score;
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
 		{1, aoc01},
@@ -736,7 +817,8 @@ bool aoc(int id) {
 		{4, aoc04},
 		{5, aoc05},
 		{6, aoc06},
-		{7, aoc07}
+		{7, aoc07},
+		{8, aoc08}
 	};
 
 	if (fns.count(id) == 0) {
@@ -778,7 +860,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 7;
+	int aoc_id = 8;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
