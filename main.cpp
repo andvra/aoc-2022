@@ -606,16 +606,17 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 	struct Dir_folder {
 		std::string name;
 		Dir_folder* parent;
+		size_t level;
+		int tot_size;
 		std::vector<Dir_folder> folders;
 		std::vector<Dir_file> files;
-		size_t tot_size;
 	};
 	struct Command {
 		std::string cmd;
 		std::vector<std::string> output;
 	};
 
-	Dir_folder root_folder = { "/" };
+	Dir_folder root_folder = { "/", nullptr, 0 };
 	Dir_folder* cur_folder = &root_folder;
 	std::vector<Command> commands = {};
 
@@ -662,7 +663,7 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 					continue;
 				}
 				if (o_parts[0] == "dir") {
-					cur_folder->folders.push_back({ o_parts[1], cur_folder });
+					cur_folder->folders.push_back({ o_parts[1], cur_folder, cur_folder->level + 1 });
 				}
 				if (o_parts[0] != "dir") {
 					cur_folder->files.push_back({ o_parts[1], (size_t)std::atoi(o_parts[0].c_str()) });
@@ -671,7 +672,60 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 		}
 	}
 
-	// TODO: Loop over folders and accumulate size
+	std::vector<Dir_folder*> folders = { &root_folder };
+	int idx_start = 0;
+	int idx_end_exclusive = folders.size();
+	int idx_folder = folders.size();
+
+	while (idx_start != idx_end_exclusive) {
+		int cnt_new_folders = 0;
+		for (int i = idx_start; i < idx_end_exclusive; i++) {
+			auto cur_folder = folders[i];
+			for (auto& child : cur_folder->folders) {
+				folders.push_back(&child);
+				cnt_new_folders++;
+			}
+		}
+		idx_start = idx_end_exclusive;
+		idx_end_exclusive += cnt_new_folders;
+	}
+
+	size_t max_level = 0;
+	for (auto f : folders) {
+		if (f->level > max_level) {
+			max_level = f->level;
+		}
+	}
+
+	for (int cur_level = (int)max_level; cur_level >= 0; cur_level--) {
+		for (auto& cur_folder : folders) {
+			if (cur_folder->level == cur_level) {
+				for (auto& child_folder : cur_folder->folders) {
+					cur_folder->tot_size += child_folder.tot_size;
+				}
+				for (auto& cur_file : cur_folder->files) {
+					cur_folder->tot_size += cur_file.fsize;
+				}
+			}
+		}
+	}
+
+	size_t max_size = 100'000;
+	int tot_disk_space = 70'000'000;
+	int required_disk_space = 30'000'000;
+	int cur_disk_space = tot_disk_space - folders[0]->tot_size;
+	int min_delete_folder_size = required_disk_space - cur_disk_space;
+	int cur_smallest_size = std::numeric_limits<int>::max();
+
+	for (auto f : folders) {
+		if (f->tot_size < max_size) {
+			result->pt1 += f->tot_size;
+		}
+		if (f->tot_size >= min_delete_folder_size && f->tot_size < cur_smallest_size) {
+			cur_smallest_size = f->tot_size;
+			result->pt2 = cur_smallest_size;
+		}
+	}
 }
 
 bool aoc(int id) {
