@@ -590,7 +590,7 @@ void aoc06(std::vector<std::string> lines, Task_result* result) {
 		}
 
 		return ret;
-	};
+		};
 
 	for (int i = 0; i < lines.size(); i++) {
 		result->pt1_string += (i == 0 ? "" : ",") + std::to_string(calc(lines[i], 4));
@@ -743,7 +743,7 @@ void aoc08(std::vector<std::string> lines, Task_result* result) {
 
 	for (int row = 0; row < num_rows; row++) {
 		for (int col = 0; col < num_cols; col++) {
-			trees[row][col] = { lines[row][col]-'0', 0};
+			trees[row][col] = { lines[row][col] - '0', 0 };
 		}
 	}
 
@@ -809,6 +809,96 @@ void aoc08(std::vector<std::string> lines, Task_result* result) {
 	result->pt2 = max_scenic_score;
 }
 
+void aoc09(std::vector<std::string> lines, Task_result* result) {
+	enum class Dir { Up, Down, Left, Right };
+
+	struct Move {
+		Dir dir;
+		int cnt;
+	};
+
+	struct Pos {
+		int x;
+		int y;
+	};
+
+	auto step_dist = [](int x1, int y1, int x2, int y2) {
+		return std::max(std::abs(x1 - x2), std::abs(y1 - y2));
+		};
+
+	std::vector<Move> moves = {};
+
+	for (auto& line : lines) {
+		auto pts = split_string(line, " ");
+		if (pts.size() != 2) {
+			std::cout << "Could not parse line: " << line << std::endl;
+			continue;
+		}
+		Dir dir = {};
+		switch (pts[0][0]) {
+		case 'U': dir = Dir::Up; break;
+		case 'D': dir = Dir::Down; break;
+		case 'L': dir = Dir::Left; break;
+		case 'R': dir = Dir::Right; break;
+		}
+
+		moves.push_back({ dir,std::atoi(pts[1].c_str()) });
+	}
+
+	auto simulate = [&moves, &step_dist](int num_knots) -> int {
+		std::vector<Pos> positions(num_knots, { {} });
+		std::vector<Pos> covered_tail_positions = { positions.back() };
+
+		for (auto& move : moves) {
+			int x_delta = 0;
+			int y_delta = 0;
+			switch (move.dir) {
+			case Dir::Up: y_delta = -1; break;
+			case Dir::Down: y_delta = 1; break;
+			case Dir::Left: x_delta = -1; break;
+			case Dir::Right: x_delta = 1; break;
+			}
+			for (int idx_move = 0; idx_move < move.cnt; idx_move++) {
+				for (int idx_knot = 0; idx_knot < num_knots; idx_knot++) {
+					if (idx_knot == 0) {
+						positions[0].x += x_delta;
+						positions[0].y += y_delta;
+					}
+					if (idx_knot > 0) {
+						auto& pos_prev = positions[idx_knot - 1];
+						auto& pos_cur = positions[idx_knot];
+						if (step_dist(pos_prev.x, pos_prev.y, pos_cur.x, pos_cur.y) > 1) {
+							if (pos_prev.x != pos_cur.x) {
+								int diff = pos_prev.x - pos_cur.x;
+								pos_cur.x += diff / std::abs(diff);
+							}
+							if (pos_prev.y != pos_cur.y) {
+								int diff = pos_prev.y - pos_cur.y;
+								pos_cur.y += diff / std::abs(diff);
+							}
+							if (idx_knot == num_knots - 1) {
+								covered_tail_positions.push_back(pos_cur);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		std::set<int> pos_unique = {};
+
+		for (auto& p : covered_tail_positions) {
+			pos_unique.insert(p.x * 10000 + p.y);
+		}
+
+		return (int)pos_unique.size();
+	};
+	
+
+	result->pt1 = simulate(2);
+	result->pt2 = simulate(10);
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
 		{1, aoc01},
@@ -818,7 +908,8 @@ bool aoc(int id) {
 		{5, aoc05},
 		{6, aoc06},
 		{7, aoc07},
-		{8, aoc08}
+		{8, aoc08},
+		{9, aoc09}
 	};
 
 	if (fns.count(id) == 0) {
@@ -851,7 +942,7 @@ bool aoc(int id) {
 		std::cout << std::format("AOC-{:02} ({}):\n  pt1: {}\n  pt2: {}", id, use_test_data ? "test" : "real", pt1, pt2) << std::endl;
 
 		return true;
-	};
+		};
 
 	run_with_file(true);
 	run_with_file(false);
@@ -860,7 +951,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 8;
+	int aoc_id = 9;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
