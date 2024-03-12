@@ -983,18 +983,36 @@ void aoc10(std::vector<std::string> lines, Task_result* result) {
 	//}
 }
 
+void aoc11(std::vector<std::string> lines, Task_result* result) {
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
-		{1, aoc01},
-		{2, aoc02},
-		{3, aoc03},
-		{4, aoc04},
-		{5, aoc05},
-		{6, aoc06},
-		{7, aoc07},
-		{8, aoc08},
-		{9, aoc09},
-		{10, aoc10}
+		{1,		aoc01},
+		{2,		aoc02},
+		{3,		aoc03},
+		{4,		aoc04},
+		{5,		aoc05},
+		{6,		aoc06},
+		{7,		aoc07},
+		{8,		aoc08},
+		{9,		aoc09},
+		{10,	aoc10},
+		{11,	aoc11},
+		//{12,	aoc12},
+		//{13,	aoc13},
+		//{14,	aoc14},
+		//{15,	aoc15},
+		//{16,	aoc16},
+		//{17,	aoc17},
+		//{18,	aoc18},
+		//{19,	aoc19},
+		//{20,	aoc20},
+		//{21,	aoc21},
+		//{22,	aoc22},
+		//{23,	aoc23},
+		//{24,	aoc24},
+		//{25,	aoc25}
 	};
 
 	if (fns.count(id) == 0) {
@@ -1036,7 +1054,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 10;
+	int aoc_id = 11;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
