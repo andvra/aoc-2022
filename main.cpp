@@ -11,6 +11,7 @@
 #include <bitset>
 #include <functional>
 #include <filesystem>
+#include <numeric>
 
 bool get_data_file_name(std::string* fn_absolute, std::string fn_relative) {
 	if (fn_absolute == nullptr) {
@@ -892,11 +893,94 @@ void aoc09(std::vector<std::string> lines, Task_result* result) {
 		}
 
 		return (int)pos_unique.size();
-	};
-	
+		};
+
 
 	result->pt1 = simulate(2);
 	result->pt2 = simulate(10);
+}
+
+void aoc10(std::vector<std::string> lines, Task_result* result) {
+	enum class Instruction_type { Noop, Addx };
+
+	struct Instruction {
+		Instruction_type type;
+		int val;
+	};
+
+	std::map<Instruction_type, int> instruction_cycles = {
+		{Instruction_type::Noop, 1},
+		{Instruction_type::Addx, 2}
+	};
+
+	std::vector<Instruction> instructions = {};
+
+	for (auto& line : lines) {
+		auto pts = split_string(line, " ");
+		if (pts.size() == 0) {
+			continue;
+		}
+		Instruction instruction = {};
+
+		if (pts[0] == "noop") {
+			instruction.type = Instruction_type::Noop;
+		}
+		if (pts.size() == 2 && pts[0] == "addx") {
+			instruction.type = Instruction_type::Addx;
+			instruction.val = std::atoi(pts[1].c_str());
+		}
+
+		instructions.push_back(instruction);
+	}
+
+	int idx_instruction = 0;
+	auto cur_instruction = instructions[idx_instruction];
+	int cycles_left = instruction_cycles[cur_instruction.type];
+	std::vector<int> measure_cycles = { 20,60,100,140,180,220 };
+	int reg_x = 1;
+	int num_cycles = 240;
+	std::vector<int> x_per_cycle(num_cycles);
+	int num_instructions = (int)instructions.size();
+
+	for (int idx_cycle = 1; idx_cycle <= num_cycles; idx_cycle++) {
+		x_per_cycle[idx_cycle - 1] = reg_x;
+		cycles_left--;
+		if (cycles_left == 0) {
+			if (cur_instruction.type == Instruction_type::Addx) {
+				reg_x += cur_instruction.val;
+			}
+			idx_instruction++;
+			if (idx_instruction >= num_instructions) {
+				cur_instruction.type = Instruction_type::Noop;
+			}
+			else {
+				cur_instruction = instructions[idx_instruction];
+				cycles_left = instruction_cycles[cur_instruction.type];
+			}
+		}
+	}
+
+	int res = 0;
+	for (auto& measure_cycle : measure_cycles) {
+		res += measure_cycle * x_per_cycle[measure_cycle - 1];
+	}
+
+	result->pt1 = res;
+	result->pt2_string = "RKAZAJBR";	// Extracted from print loop below
+
+	//for (int idx_cycle = 0; idx_cycle < num_cycles; idx_cycle++) {
+	//	int row_len = 40;
+	//	int row = idx_cycle / row_len;
+	//	int col = idx_cycle % row_len;
+	//	char c = '.';
+	//	if (std::abs(x_per_cycle[idx_cycle] - col) <= 1) {
+	//		c = '#';
+	//	}
+	//	std::cout << c;
+	//	if ((idx_cycle + 1) % row_len == 0) {
+	//		std::cout << std::endl;
+	//	}
+	//}
 }
 
 bool aoc(int id) {
@@ -909,7 +993,8 @@ bool aoc(int id) {
 		{6, aoc06},
 		{7, aoc07},
 		{8, aoc08},
-		{9, aoc09}
+		{9, aoc09},
+		{10, aoc10}
 	};
 
 	if (fns.count(id) == 0) {
@@ -951,7 +1036,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 9;
+	int aoc_id = 10;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
