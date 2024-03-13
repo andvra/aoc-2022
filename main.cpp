@@ -49,26 +49,26 @@ std::vector<std::string> read_file(std::string fn) {
 	return ret;
 }
 
-void ltrim(std::string& s) {
+void string_ltrim(std::string& s) {
 	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
 		return !std::isspace(ch);
 		}));
 }
 
-void rtrim(std::string& s) {
+void string_rtrim(std::string& s) {
 	s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
 		return !std::isspace(ch);
 		}).base(), s.end());
 }
 
-std::string trim(std::string s) {
-	ltrim(s);
-	rtrim(s);
+std::string string_trim(std::string s) {
+	string_ltrim(s);
+	string_rtrim(s);
 
 	return s;
 }
 
-std::vector<std::string> split_string(std::string s, std::string delimiter) {
+std::vector<std::string> string_split(std::string s, std::string delimiter) {
 	std::vector<std::string> ret = {};
 
 	size_t offset = 0;
@@ -84,6 +84,12 @@ std::vector<std::string> split_string(std::string s, std::string delimiter) {
 	}
 
 	return ret;
+}
+
+std::string string_remove_char(std::string s, char c) {
+	s.erase(remove(s.begin(), s.end(), c), s.end());
+
+	return s;
 }
 
 // The last element on each row is the scalar to compare with
@@ -280,8 +286,8 @@ long long lcm(std::vector<long long> vals) {
 }
 
 struct Task_result {
-	int pt1;
-	int pt2;
+	long long pt1;
+	long long pt2;
 	// Most answers are numbers. Appently, some are strings. If string is set, it overrides int.
 	std::string pt1_string;
 	std::string pt2_string;
@@ -451,10 +457,10 @@ void aoc04(std::vector<std::string> lines, Task_result* result) {
 	int num_contained = 0;
 	int num_overlap = 0;
 	for (auto& line : lines) {
-		auto elve_ranges = split_string(line, ",");
+		auto elve_ranges = string_split(line, ",");
 		std::vector<std::string> range_string[2] = {
-			split_string(elve_ranges[0], "-"),
-			split_string(elve_ranges[1], "-")
+			string_split(elve_ranges[0], "-"),
+			string_split(elve_ranges[1], "-")
 		};
 		std::vector<Range> ranges(2);
 		ranges[0].start = std::atoi(range_string[0][0].c_str());
@@ -523,7 +529,7 @@ void aoc05(std::vector<std::string> lines, Task_result* result) {
 		line = replace_all(line, "move ", "");
 		line = replace_all(line, "from ", "");
 		line = replace_all(line, "to ", "");
-		auto line_parts = split_string(line, " ");
+		auto line_parts = string_split(line, " ");
 		moves[idx_move] = { std::atoi(line_parts[0].c_str()), std::atoi(line_parts[1].c_str()) - 1, std::atoi(line_parts[2].c_str()) - 1 };
 	}
 
@@ -631,7 +637,7 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 	}
 
 	for (auto& cmd : commands) {
-		auto cmd_parts = split_string(cmd.cmd, " ");
+		auto cmd_parts = string_split(cmd.cmd, " ");
 		if (cmd_parts.size() == 0) {
 			continue;
 		}
@@ -659,7 +665,7 @@ void aoc07(std::vector<std::string> lines, Task_result* result) {
 		}
 		if (cmd_parts[0] == "ls") {
 			for (auto& o : cmd.output) {
-				auto o_parts = split_string(o, " ");
+				auto o_parts = string_split(o, " ");
 				if (o_parts.empty()) {
 					continue;
 				}
@@ -830,7 +836,7 @@ void aoc09(std::vector<std::string> lines, Task_result* result) {
 	std::vector<Move> moves = {};
 
 	for (auto& line : lines) {
-		auto pts = split_string(line, " ");
+		auto pts = string_split(line, " ");
 		if (pts.size() != 2) {
 			std::cout << "Could not parse line: " << line << std::endl;
 			continue;
@@ -916,7 +922,7 @@ void aoc10(std::vector<std::string> lines, Task_result* result) {
 	std::vector<Instruction> instructions = {};
 
 	for (auto& line : lines) {
-		auto pts = split_string(line, " ");
+		auto pts = string_split(line, " ");
 		if (pts.size() == 0) {
 			continue;
 		}
@@ -984,6 +990,158 @@ void aoc10(std::vector<std::string> lines, Task_result* result) {
 }
 
 void aoc11(std::vector<std::string> lines, Task_result* result) {
+	struct Monkey {
+		int id;
+		std::vector<long long> items;
+		std::function<long long(long long)> operation;
+		long long test_divisor;
+		int idx_monkey_on_true;
+		int idx_monkey_on_false;
+		int num_items;
+		int idx_start_items;
+		int num_inspections;
+	};
+
+	enum class Line_type { None, Id, Items, Operation, Test_divisor, On_true, On_false };
+
+	int num_lines = (int)lines.size();
+	int num_monkeys = (num_lines + 1) / 7;
+	std::vector<Monkey> monkeys(num_monkeys);
+	int idx_cur_monkey = 0;
+
+	for (int idx_line = 0; idx_line < num_lines; idx_line++) {
+		auto cur_line_copy = lines[idx_line];
+		if ((idx_line + 1) % 7 == 0) {
+			idx_cur_monkey++;
+		}
+
+		auto& cur_monkey = monkeys[idx_cur_monkey];
+		int idx_monkey_line = idx_line % 7;
+
+		Line_type line_type = Line_type::None;
+		switch (idx_monkey_line) {
+		case 0:line_type = Line_type::Id;			break;
+		case 1:line_type = Line_type::Items;		break;
+		case 2:line_type = Line_type::Operation;	break;
+		case 3:line_type = Line_type::Test_divisor; break;
+		case 4:line_type = Line_type::On_true;		break;
+		case 5:line_type = Line_type::On_false;		break;
+		}
+
+		if (line_type == Line_type::Id) {
+			cur_monkey.id = std::atoi(string_remove_char(string_split(cur_line_copy, " ")[1], ':').c_str());
+		}
+		if (line_type == Line_type::Items) {
+			auto pts = string_split(cur_line_copy, ": ");
+			auto nums = string_split(pts[1], ", ");
+			std::for_each(nums.begin(), nums.end(), [&](std::string s) {cur_monkey.items.push_back(std::atoi(s.c_str())); });
+		}
+
+		if (line_type == Line_type::Operation) {
+			auto pts = string_split(cur_line_copy, "Operation: ");
+			auto eq = string_split(pts[1], "= ")[1];
+			auto split_add = string_split(eq, " + ");
+			auto split_mult = string_split(eq, " * ");
+			std::sort(split_add.begin(), split_add.end());
+			std::sort(split_mult.begin(), split_mult.end());
+			if (split_add.size() == 2) {
+				bool both_old = split_add[0] == "old";
+				if (both_old) {
+					// Both parts are 'old'
+					cur_monkey.operation = [](long long old) { return old + old; };
+				}
+				if (!both_old) {
+					cur_monkey.operation = [=](long long old) { return std::atoll(split_add[0].c_str()) + old; };
+				}
+			}
+			if (split_mult.size() == 2) {
+				bool both_old = split_mult[0] == "old";
+				if (both_old) {
+					// Both parts are 'old'
+					cur_monkey.operation = [](long long old) { return old * old; };
+				}
+				if (!both_old) {
+					cur_monkey.operation = [=](long long old) { return std::atoll(split_mult[0].c_str()) * old; };
+				}
+			}
+		}
+
+		if (line_type == Line_type::Test_divisor) {
+			auto pts = string_split(cur_line_copy, "divisible by ");
+			cur_monkey.test_divisor = std::atoi(pts[1].c_str());
+		}
+
+		if (line_type == Line_type::On_true) {
+			auto pts = string_split(cur_line_copy, "monkey ");
+			cur_monkey.idx_monkey_on_true = std::atoi(pts[1].c_str());
+		}
+
+		if (line_type == Line_type::On_false) {
+			auto pts = string_split(cur_line_copy, "monkey ");
+			cur_monkey.idx_monkey_on_false = std::atoi(pts[1].c_str());
+		}
+	}
+
+	int tot_items = 0;
+
+	for (auto& monkey : monkeys) {
+		tot_items += (int)monkey.items.size();
+	}
+
+	for (auto& monkey : monkeys) {
+		monkey.num_items = monkey.items.size();
+		monkey.items.resize(tot_items);
+	}
+
+	auto simulate = [&](int num_rounds, long long val_div) {
+		int max_val = 1;
+
+		// TODO: Är det rätt att göra såhör? Inklusive modulus här nedan?
+		for (auto& monkey : monkeys) {
+			max_val *= monkey.test_divisor;
+		}
+
+		for (int idx_round = 0; idx_round < num_rounds; idx_round++) {
+			for (int idx_monkey = 0; idx_monkey < num_monkeys; idx_monkey++) {
+				auto& cur_monkey = monkeys[idx_monkey];
+				int idx_start = cur_monkey.idx_start_items;
+				int idx_end_exclusive = idx_start + cur_monkey.num_items;
+				for (int idx_item = idx_start; idx_item < idx_end_exclusive; idx_item++) {
+					cur_monkey.num_inspections++;
+					auto val_old = cur_monkey.items[idx_item % tot_items];
+					auto val_new = cur_monkey.operation(val_old);
+					val_new = val_new % max_val;
+					val_new /= val_div;
+					int idx_target_monkey = 0;
+					int test_true = (val_new % cur_monkey.test_divisor) == 0;
+					if (test_true) {
+						idx_target_monkey = cur_monkey.idx_monkey_on_true;
+					}
+					if (!test_true) {
+						idx_target_monkey = cur_monkey.idx_monkey_on_false;
+					}
+					auto& target_monkey = monkeys[idx_target_monkey];
+					target_monkey.items[(target_monkey.idx_start_items + target_monkey.num_items) % tot_items] = val_new;
+					target_monkey.num_items++;
+					cur_monkey.num_items--;
+					cur_monkey.idx_start_items = (cur_monkey.idx_start_items + 1) % tot_items;
+				}
+			}
+		}
+
+		std::vector<long long> num_inspections(num_monkeys);
+
+		for (int idx_monkey = 0; idx_monkey < num_monkeys; idx_monkey++) {
+			num_inspections[idx_monkey] = monkeys[idx_monkey].num_inspections;
+		}
+
+		std::sort(num_inspections.begin(), num_inspections.end());
+
+		return (*(num_inspections.end() - 1))* (*(num_inspections.end() - 2));
+		};
+
+	result->pt1 = simulate(20, 3);
+	result->pt2 = simulate(10000, 1);
 }
 
 bool aoc(int id) {
