@@ -1094,9 +1094,9 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 	}
 
 	auto simulate = [&](int num_rounds, long long val_div) {
-		int max_val = 1;
+		long long max_val = 1;
 
-		// TODO: Är det rätt att göra såhör? Inklusive modulus här nedan?
+		// TODO: Är det rätt att göra såhär? Inklusive modulus här nedan?
 		for (auto& monkey : monkeys) {
 			max_val *= monkey.test_divisor;
 		}
