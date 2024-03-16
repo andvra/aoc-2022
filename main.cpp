@@ -1093,10 +1093,9 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 		monkey.items.resize(tot_items);
 	}
 
-	auto simulate = [&](int num_rounds, long long val_div) {
+	auto simulate = [](std::vector<Monkey> monkeys, int tot_items, int num_rounds, long long val_div) {
 		long long max_val = 1;
-
-		// TODO: Är det rätt att göra såhär? Inklusive modulus här nedan?
+		int num_monkeys = monkeys.size();
 		for (auto& monkey : monkeys) {
 			max_val *= monkey.test_divisor;
 		}
@@ -1140,8 +1139,8 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 		return (*(num_inspections.end() - 1))* (*(num_inspections.end() - 2));
 		};
 
-	result->pt1 = simulate(20, 3);
-	result->pt2 = simulate(10000, 1);
+	result->pt1 = simulate(monkeys, tot_items, 20, 3);
+	result->pt2 = simulate(monkeys, tot_items, 10000, 1);
 }
 
 bool aoc(int id) {
