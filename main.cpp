@@ -95,14 +95,14 @@ std::string string_remove_char(std::string s, char c) {
 // The last element on each row is the scalar to compare with
 std::vector<double> linear_solver(std::vector<std::vector<double>> input) {
 	bool done = false;
-	int variables_complete = 0;
+	size_t variables_complete = 0;
 	int steps = 0;
 
 	while (!done) {
 		// 1. Swap rows if needed
 		if (input[variables_complete][variables_complete] == 0) {
 			bool did_switch = false;
-			for (int i = variables_complete + 1; i < input.size(); i++) {
+			for (size_t i = variables_complete + 1; i < input.size(); i++) {
 				if (input[i][variables_complete] != 0) {
 					auto tmp = input[i];
 					input[i] = input[variables_complete];
@@ -119,18 +119,18 @@ std::vector<double> linear_solver(std::vector<std::vector<double>> input) {
 		// 2. Scale row
 		double scale_factor = input[variables_complete][variables_complete];
 		if (scale_factor != 1) {
-			for (int i = variables_complete; i < input[variables_complete].size(); i++) {
+			for (size_t i = variables_complete; i < input[variables_complete].size(); i++) {
 				input[variables_complete][i] /= scale_factor;
 			}
 		}
 		// 3. Multiply onto other rows
-		for (int idx_row = 0; idx_row < input.size(); idx_row++) {
+		for (size_t idx_row = 0; idx_row < input.size(); idx_row++) {
 			if (idx_row == variables_complete) {
 				continue;
 			}
 			double factor = input[idx_row][variables_complete];
 			if (factor != 0) {
-				for (int i = variables_complete; i < input[variables_complete].size(); i++) {
+				for (size_t i = variables_complete; i < input[variables_complete].size(); i++) {
 					input[idx_row][i] -= factor * input[variables_complete][i];
 				}
 			}
@@ -1089,13 +1089,13 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 	}
 
 	for (auto& monkey : monkeys) {
-		monkey.num_items = monkey.items.size();
+		monkey.num_items = (int)monkey.items.size();
 		monkey.items.resize(tot_items);
 	}
 
 	auto simulate = [](std::vector<Monkey> monkeys, int tot_items, int num_rounds, long long val_div) {
 		long long max_val = 1;
-		int num_monkeys = monkeys.size();
+		int num_monkeys = (int)monkeys.size();
 		for (auto& monkey : monkeys) {
 			max_val *= monkey.test_divisor;
 		}
@@ -1143,6 +1143,37 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 	result->pt2 = simulate(monkeys, tot_items, 10000, 1);
 }
 
+void aoc12(std::vector<std::string> lines, Task_result* result) {
+	auto num_rows = lines.size();
+	auto num_cols = lines[0].size();
+
+	std::vector<std::vector<char>> grid(num_rows, std::vector<char>(num_cols));
+
+	size_t cur_pos_x = 0;
+	size_t cur_pos_y = 0;
+	size_t end_pos_x = 0;
+	size_t end_pos_y = 0;
+
+	for (auto idx_row = 0; idx_row < num_rows; idx_row++) {
+		for (auto idx_col = 0; idx_col < num_cols; idx_col++) {
+			auto cur_char = lines[idx_row][idx_col];
+			if (cur_char == 'S') {
+				cur_char = 'a';
+				cur_pos_x = idx_col;
+				cur_pos_y = idx_row;
+			}
+			if (cur_char == 'E') {
+				cur_char = 'z';
+				end_pos_x = idx_col;
+				end_pos_y = idx_row;
+			}
+			grid[idx_row][idx_col] = cur_char;
+		}
+	}
+
+	int a = 3;
+}
+
 bool aoc(int id) {
 	std::map<int, std::function<void(std::vector<std::string>, Task_result*)>> fns = {
 		{1,		aoc01},
@@ -1156,7 +1187,7 @@ bool aoc(int id) {
 		{9,		aoc09},
 		{10,	aoc10},
 		{11,	aoc11},
-		//{12,	aoc12},
+		{12,	aoc12},
 		//{13,	aoc13},
 		//{14,	aoc14},
 		//{15,	aoc15},
@@ -1211,7 +1242,7 @@ bool aoc(int id) {
 }
 
 int main() {
-	int aoc_id = 11;
+	int aoc_id = 12;
 	auto t_start = std::chrono::high_resolution_clock::now();
 	aoc(aoc_id);
 	auto t_end = std::chrono::high_resolution_clock::now();
