@@ -1136,7 +1136,7 @@ void aoc11(std::vector<std::string> lines, Task_result* result) {
 
 		std::sort(num_inspections.begin(), num_inspections.end());
 
-		return (*(num_inspections.end() - 1))* (*(num_inspections.end() - 2));
+		return (*(num_inspections.end() - 1)) * (*(num_inspections.end() - 2));
 		};
 
 	result->pt1 = simulate(monkeys, tot_items, 20, 3);
@@ -1149,29 +1149,124 @@ void aoc12(std::vector<std::string> lines, Task_result* result) {
 
 	std::vector<std::vector<char>> grid(num_rows, std::vector<char>(num_cols));
 
-	size_t cur_pos_x = 0;
-	size_t cur_pos_y = 0;
-	size_t end_pos_x = 0;
-	size_t end_pos_y = 0;
+	size_t cur_pos_col = 0;
+	size_t cur_pos_row = 0;
+	size_t end_pos_col = 0;
+	size_t end_pos_row = 0;
 
 	for (auto idx_row = 0; idx_row < num_rows; idx_row++) {
 		for (auto idx_col = 0; idx_col < num_cols; idx_col++) {
 			auto cur_char = lines[idx_row][idx_col];
 			if (cur_char == 'S') {
 				cur_char = 'a';
-				cur_pos_x = idx_col;
-				cur_pos_y = idx_row;
+				cur_pos_col = idx_col;
+				cur_pos_row = idx_row;
 			}
 			if (cur_char == 'E') {
 				cur_char = 'z';
-				end_pos_x = idx_col;
-				end_pos_y = idx_row;
+				end_pos_col = idx_col;
+				end_pos_row = idx_row;
 			}
 			grid[idx_row][idx_col] = cur_char;
 		}
 	}
 
-	int a = 3;
+	auto shortest_path = [](std::vector<std::vector<char>>& grid, std::function<bool(int cur_val, int check_val)> cond, size_t start_row, size_t start_col) -> std::vector<std::vector<size_t>> {
+		size_t num_rows = grid.size();
+		size_t num_cols = grid[0].size();
+		std::vector<std::vector<size_t>> num_steps(num_rows, std::vector<size_t>(num_cols, std::numeric_limits<size_t>::max()));
+
+		num_steps[start_row][start_col] = 0;
+		std::vector<int> neighbor_pos_add_x = { -1,0,1,0 };
+		std::vector<int> neighbor_pos_add_y = { 0,-1,0,1 };
+
+		size_t buf_size = 1'000;
+
+		std::vector<std::vector<int>> row_bufs(2, std::vector<int>(buf_size));
+		std::vector<std::vector<int>> col_bufs(2, std::vector<int>(buf_size));
+		std::vector<std::vector<bool>> is_checked(num_rows, std::vector<bool>(num_cols, false));
+		size_t idx_buf = 0;
+		row_bufs[idx_buf][0] = (int)start_row;
+		col_bufs[idx_buf][0] = (int)start_col;
+		size_t num_updates = 1;
+		is_checked[start_row][start_col] = true;
+
+		bool done = false;
+		int max_iter = 10'000;
+
+		while (!done && max_iter-- > 0) {
+			auto prev_num_updates = num_updates;
+			num_updates = 0;
+			auto prev_idx_buf = idx_buf;
+			idx_buf = (idx_buf + 1) % 2;
+			for (auto idx_element = 0; idx_element < prev_num_updates; idx_element++) {
+				auto cur_row = row_bufs[prev_idx_buf][idx_element];
+				auto cur_col = col_bufs[prev_idx_buf][idx_element];
+				auto cur_steps = num_steps[cur_row][cur_col];
+				auto cur_height = grid[cur_row][cur_col];
+				for (size_t idx_neighbor = 0; idx_neighbor < 4; idx_neighbor++) {
+					int check_col = cur_col + neighbor_pos_add_x[idx_neighbor];
+					int check_row = cur_row + neighbor_pos_add_y[idx_neighbor];
+					if (check_col < 0 || check_col >= num_cols) {
+						continue;
+					}
+					if (check_row < 0 || check_row >= num_rows) {
+						continue;
+					}
+					if (num_steps[check_row][check_col] < cur_steps) {
+						continue;
+					}
+					if (is_checked[check_row][check_col]) {
+						continue;
+					}
+					auto check_height = grid[check_row][check_col];
+					if (cond(cur_height, check_height)) {
+						is_checked[check_row][check_col] = true;
+						num_steps[check_row][check_col] = cur_steps + 1;
+						row_bufs[idx_buf][num_updates] = check_row;
+						col_bufs[idx_buf][num_updates] = check_col;
+						num_updates++;
+					}
+				}
+			}
+			if (num_updates == 0) {
+				done = true;
+			}
+		}
+
+		return num_steps;
+		};
+
+	auto cond = [](int cur_val, int check_val) {
+		return (check_val <= cur_val || (check_val - cur_val) == 1);
+		};
+	auto num_steps = shortest_path(grid, cond, cur_pos_row, cur_pos_col);
+
+	result->pt1 = num_steps[end_pos_row][end_pos_col];
+	
+	std::vector<int> possible_start_row = {};
+	std::vector<int> possible_start_col = {};
+	for (auto idx_row = 0; idx_row < num_rows; idx_row++) {
+		for (auto idx_col = 0; idx_col < num_cols; idx_col++) {
+			auto cur_char = lines[idx_row][idx_col];
+			if (cur_char == 'a') {
+				possible_start_row.push_back(idx_row);
+				possible_start_col.push_back(idx_col);
+			}
+		}
+	}
+
+	int cur_min_steps = std::numeric_limits<int>::max();
+	for (size_t i = 0; i < possible_start_row.size(); i++) {
+		auto start_row = possible_start_row[i];
+		auto start_col = possible_start_col[i];
+		auto this_num_steps = shortest_path(grid, cond, start_row, start_col);
+		auto val = this_num_steps[end_pos_row][end_pos_col];
+		if (val < cur_min_steps) {
+			cur_min_steps = (int)val;
+		}
+	}
+	result->pt2 = cur_min_steps;
 }
 
 bool aoc(int id) {
